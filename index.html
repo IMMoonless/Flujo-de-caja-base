@@ -304,8 +304,8 @@
       <img class="logo-img" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzohfQNnkQvUtMKopuDtd38J1Jg8DYTbG4aw&s" alt="Company Logo" onerror="this.style.display='none'"/>
       <div class="brand-sep"></div>
       <div class="brand-label">
-        <div class="brand-title">Financial Dashboard</div>
-        <div class="brand-sub">Cash Flow Analysis · 2024</div>
+        <div class="brand-title">Nuko Capital Llc</div>
+        <div class="brand-sub">Cash Flow Analysis · 2026</div>
       </div>
     </div>
     <div class="header-right">
@@ -327,7 +327,7 @@
     <div class="hero-text">
       <div class="hero-eyebrow">Estado de Flujo de Efectivo</div>
       <div class="hero-title">CASH FLOW <span>ANALYSIS</span></div>
-      <div class="hero-period" id="hero-period">Período: Oct — Dic 2024 &nbsp;|&nbsp; Datos Auditados</div>
+      <div class="hero-period" id="hero-period">Período: Oct — Dic 2026 &nbsp;|&nbsp; Datos Auditados</div>
     </div>
     <div class="hero-badge">
       <div class="badge-label">Net Cash Position</div>
@@ -405,9 +405,9 @@
           <tr>
             <th>Concepto</th>
             <th>Categoría</th>
-            <th style="text-align:right">Oct 2024</th>
-            <th style="text-align:right">Nov 2024</th>
-            <th style="text-align:right">Dic 2024</th>
+            <th style="text-align:right">Oct 2026</th>
+            <th style="text-align:right">Nov 2026</th>
+            <th style="text-align:right">Dic 2026</th>
             <th style="text-align:right">Total Q4</th>
           </tr>
         </thead>
@@ -421,9 +421,9 @@
   <footer>
     <div class="footer-brand">
       <div class="footer-dot"></div>
-      <span>Cash Flow Dashboard — Análisis Financiero 2024</span>
+      <span>Cash Flow Dashboard — Análisis Financiero 2026</span>
     </div>
-    <span>Datos ilustrativos para presentación | v1.0</span>
+    <span>Propuesta linea gráfica para Dashboard | v1.0</span>
     <span id="footer-ts"></span>
   </footer>
 
@@ -457,8 +457,8 @@
 ───────────────────────────────────────────────────── */
 const PERIODS = {
   Q4: {
-    label: 'Oct — Dic 2024',
-    months: ['Oct 2024','Nov 2024','Dic 2024'],
+    label: 'Oct — Dic 2026',
+    months: ['Oct 2026','Nov 2026','Dic 2026'],
     kpi: { op: 2184, inv: -680, fin: -257, net: 1247, balance: 3891, change: '+18.4%' },
     monthly: {
       operating:   [682, 734, 768],
@@ -473,22 +473,22 @@ const PERIODS = {
     }
   },
   Q3: {
-    label: 'Jul — Sep 2024',
-    months: ['Jul 2024','Ago 2024','Sep 2024'],
+    label: 'Jul — Sep 2026',
+    months: ['Jul 2026','Ago 2026','Sep 2026'],
     kpi: { op: 2115, inv: -620, fin: -283, net: 1212, balance: 2644, change: '+14.1%' },
     monthly: { operating:[700,720,695], investing:[-210,-190,-220], financing:[-88,-92,-103] },
     trend12: null,
   },
   Q2: {
-    label: 'Abr — Jun 2024',
-    months: ['Abr 2024','May 2024','Jun 2024'],
+    label: 'Abr — Jun 2026',
+    months: ['Abr 2026','May 2026','Jun 2026'],
     kpi: { op: 1840, inv: -540, fin: -240, net: 1060, balance: 1432, change: '+9.8%' },
     monthly: { operating:[620,580,640], investing:[-160,-180,-200], financing:[-85,-95,-100] },
     trend12: null,
   },
   YTD: {
-    label: 'Ene — Dic 2024',
-    months: ['Q1 2024','Q2 2024','Q3 2024','Q4 2024'],
+    label: 'Ene — Dic 2026',
+    months: ['Q1 2026','Q2 2026','Q3 2026','Q4 2026'],
     kpi: { op: 7880, inv: -2350, fin: -940, net: 4590, balance: 3891, change: '+27.3%' },
     monthly: { operating:[1550,1840,2115,2184], investing:[-540,-540,-620,-680], financing:[-220,-240,-283,-257] },
     trend12: null,
@@ -706,7 +706,7 @@ function buildBarCompareChart(d) {
 /* TABLE */
 function buildTable(d) {
   const months = d.months.length > 4
-    ? ['Q1 2024','Q2 2024','Q3 2024','Q4 2024']
+    ? ['Q1 2026','Q2 2026','Q3 2026','Q4 2026']
     : d.months;
   const body = document.getElementById('cfTableBody');
   body.innerHTML = '';
