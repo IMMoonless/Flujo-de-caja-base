@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cash Flow Analysis — Financial Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --red: #D10000;
+    --red-dark: #8B0000;
+    --red-glow: rgba(209,0,0,0.35);
+    --white: #FFFFFF;
+    --black: #000000;
+    --glass-bg: rgba(0,0,0,0.52);
+    --glass-border: rgba(255,255,255,0.10);
+    --glass-card: rgba(10,10,10,0.62);
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255,255,255,0.60);
+    --text-muted: rgba(255,255,255,0.35);
+    --positive: #00E5A0;
+    --negative: #D10000;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: #000;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND ── */
+  #bg-gif {
+    position: fixed; inset: 0; z-index: 0;
+    background: url('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmhuNXg0am9nazM3M2FoYW92YXZwdzV6NWV1bzdmd3Z0eGdkc2RycSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1IXYZdEKzOZNEvug/giphy.gif') center/cover no-repeat;
+    filter: brightness(0.28) saturate(0.6);
+  }
+  #bg-overlay {
+    position: fixed; inset: 0; z-index: 1;
+    background: linear-gradient(160deg, rgba(0,0,0,0.70) 0%, rgba(80,0,0,0.18) 50%, rgba(0,0,0,0.82) 100%);
+  }
+
+  /* ── LAYOUT ── */
+  #app { position: relative; z-index: 2; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    border-bottom: 1px solid rgba(209,0,0,0.30);
+    background: rgba(0,0,0,0.60);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+  .logo-img {
+    height: 44px; width: auto;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+  }
+  .brand-sep { width: 1px; height: 32px; background: rgba(209,0,0,0.50); }
+  .brand-label { display: flex; flex-direction: column; gap: 2px; }
+  .brand-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.25rem; letter-spacing: 3px; color: var(--white); line-height: 1; }
+  .brand-sub { font-size: 0.62rem; letter-spacing: 2.5px; color: var(--text-secondary); text-transform: uppercase; }
+
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .period-selector {
+    display: flex; gap: 6px;
+  }
+  .period-btn {
+    background: transparent; border: 1px solid var(--glass-border);
+    color: var(--text-secondary); font-family: 'Montserrat', sans-serif;
+    font-size: 0.70rem; font-weight: 600; letter-spacing: 1.5px;
+    padding: 6px 14px; cursor: pointer; transition: all .2s;
+    text-transform: uppercase;
+  }
+  .period-btn:hover, .period-btn.active {
+    background: var(--red); border-color: var(--red);
+    color: #fff;
+  }
+
+  .import-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--red);
+    color: var(--red); font-family: 'Montserrat', sans-serif;
+    font-size: 0.70rem; font-weight: 700; letter-spacing: 2px;
+    padding: 8px 18px; cursor: pointer; transition: all .25s;
+    text-transform: uppercase;
+  }
+  .import-btn:hover { background: var(--red); color: #fff; }
+  .import-btn svg { width: 14px; height: 14px; }
+
+  /* ── HERO TITLE ── */
+  .hero {
+    padding: 36px 40px 8px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .hero-text {}
+  .hero-eyebrow { font-size: 0.65rem; letter-spacing: 4px; color: var(--red); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+  .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: 4px; line-height: 1; }
+  .hero-title span { color: var(--red); }
+  .hero-period { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; letter-spacing: 1px; }
+
+  .hero-badge {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .badge-label { font-size: 0.60rem; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
+  .badge-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.6rem; letter-spacing: 2px; }
+  .badge-value.positive { color: var(--positive); }
+  .badge-value.negative { color: var(--negative); }
+  .badge-change { font-size: 0.68rem; color: var(--text-secondary); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(209,0,0,0.40), transparent);
+    margin: 12px 40px;
+  }
+
+  /* ── GRID LAYOUT ── */
+  .main-content { padding: 12px 40px 60px; display: flex; flex-direction: column; gap: 24px; }
+
+  /* ── KPI CARDS ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  .kpi-card {
+    background: var(--glass-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 22px 24px;
+    position: relative; overflow: hidden;
+    transition: transform .2s, border-color .2s;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--red);
+  }
+  .kpi-card:hover { transform: translateY(-3px); border-color: rgba(209,0,0,0.35); }
+
+  .kpi-card.highlight { border-color: rgba(209,0,0,0.45); }
+  .kpi-card.highlight::before { background: linear-gradient(90deg, var(--red), #ff4444); }
+
+  .kpi-label { font-size: 0.62rem; letter-spacing: 2.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
+  .kpi-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.0rem; letter-spacing: 1px; line-height: 1; }
+  .kpi-value.pos { color: var(--positive); }
+  .kpi-value.neg { color: var(--red); }
+  .kpi-value.neutral { color: var(--white); }
+  .kpi-sub { margin-top: 8px; font-size: 0.65rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+  .kpi-arrow { font-size: 0.80rem; }
+  .kpi-arrow.up { color: var(--positive); }
+  .kpi-arrow.down { color: var(--red); }
+  .kpi-icon {
+    position: absolute; right: 18px; top: 18px;
+    font-size: 1.4rem; opacity: 0.18;
+  }
+
+  /* ── CHARTS GRID ── */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .chart-card {
+    background: var(--glass-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 24px;
+  }
+  .chart-title {
+    font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;
+  }
+  .chart-subtitle { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 20px; }
+  .chart-wrap { position: relative; }
+
+  /* ── TABLE ── */
+  .table-card {
+    background: var(--glass-card);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 24px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  thead tr { border-bottom: 1px solid rgba(209,0,0,0.35); }
+  thead th { padding: 8px 14px; text-align: left; font-size: 0.60rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .15s; }
+  tbody tr:hover { background: rgba(209,0,0,0.06); }
+  tbody td { padding: 11px 14px; color: var(--text-primary); }
+  tbody td:first-child { font-weight: 500; }
+  .td-category { color: var(--text-muted); font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; }
+  .td-positive { color: var(--positive); font-family: 'Share Tech Mono', monospace; text-align: right; }
+  .td-negative { color: var(--red); font-family: 'Share Tech Mono', monospace; text-align: right; }
+  .td-neutral { font-family: 'Share Tech Mono', monospace; text-align: right; }
+  .tr-subtotal td { background: rgba(255,255,255,0.03); font-weight: 600; font-size: 0.80rem; border-top: 1px solid rgba(255,255,255,0.08); }
+  .tr-total td { background: rgba(209,0,0,0.10); font-weight: 700; font-size: 0.82rem; border-top: 1px solid rgba(209,0,0,0.40); }
+  .section-header td { padding: 14px 14px 6px; color: var(--red); font-size: 0.62rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+
+  /* ── WATERFALL BAR ── */
+  .waterfall-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* ── IMPORT MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: rgba(0,0,0,0.80); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: rgba(10,10,10,0.95); border: 1px solid rgba(209,0,0,0.40);
+    padding: 36px; min-width: 420px; max-width: 90vw;
+    animation: modalIn .3s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; margin-bottom: 6px; }
+  .modal-sub { font-size: 0.70rem; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 24px; }
+  .drop-zone {
+    border: 2px dashed rgba(209,0,0,0.40); padding: 40px 24px;
+    text-align: center; cursor: pointer; transition: border-color .2s;
+    margin-bottom: 20px;
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--red); background: rgba(209,0,0,0.05); }
+  .drop-zone p { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
+  .drop-icon { font-size: 2.4rem; }
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .btn-close {
+    background: transparent; border: 1px solid var(--glass-border);
+    color: var(--text-secondary); font-family: 'Montserrat', sans-serif;
+    font-size: 0.70rem; font-weight: 600; letter-spacing: 2px;
+    padding: 10px 22px; cursor: pointer; transition: all .2s; text-transform: uppercase;
+  }
+  .btn-close:hover { border-color: #fff; color: #fff; }
+
+  .format-note {
+    background: rgba(209,0,0,0.08); border-left: 2px solid var(--red);
+    padding: 10px 14px; font-size: 0.68rem; color: var(--text-secondary);
+    margin-bottom: 20px; line-height: 1.6;
+  }
+  .format-note strong { color: var(--text-primary); display: block; margin-bottom: 4px; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid rgba(209,0,0,0.20);
+    padding: 20px 40px;
+    background: rgba(0,0,0,0.70);
+    backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.62rem; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase;
+  }
+  .footer-brand { display: flex; align-items: center; gap: 10px; }
+  .footer-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--red); }
+
+  /* ── ANIMATED RED LINE ── */
+  .red-line {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 3px; z-index: 999;
+    background: linear-gradient(180deg, transparent, var(--red), transparent);
+    animation: lineMove 4s ease-in-out infinite;
+  }
+  @keyframes lineMove {
+    0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; }
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(209,0,0,0.40); border-radius: 3px; }
+
+  /* ── UPLOAD STATUS ── */
+  .upload-status {
+    font-size: 0.72rem; color: var(--positive); margin-top: 10px;
+    display: none; text-align: center; letter-spacing: 1px;
+  }
+
+  /* ── TOOLTIP OVERRIDE ── */
+  .chartjs-tooltip { backdrop-filter: blur(12px) !important; }
+
+  @media (max-width: 1100px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .charts-row, .charts-row-3, .waterfall-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    header { padding: 14px 18px; }
+    .main-content { padding: 12px 18px 40px; }
+    .hero { padding: 24px 18px 8px; flex-direction: column; gap: 14px; align-items: flex-start; }
+    .kpi-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="bg-gif"></div>
+<div id="bg-overlay"></div>
+<div class="red-line"></div>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-area">
+      <img class="logo-img" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzohfQNnkQvUtMKopuDtd38J1Jg8DYTbG4aw&s" alt="Company Logo" onerror="this.style.display='none'"/>
+      <div class="brand-sep"></div>
+      <div class="brand-label">
+        <div class="brand-title">Financial Dashboard</div>
+        <div class="brand-sub">Cash Flow Analysis · 2024</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="period-selector">
+        <button class="period-btn active" onclick="setPeriod('Q4',this)">Q4</button>
+        <button class="period-btn" onclick="setPeriod('Q3',this)">Q3</button>
+        <button class="period-btn" onclick="setPeriod('Q2',this)">Q2</button>
+        <button class="period-btn" onclick="setPeriod('YTD',this)">YTD</button>
+      </div>
+      <button class="import-btn" onclick="openModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Import Data
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-text">
+      <div class="hero-eyebrow">Estado de Flujo de Efectivo</div>
+      <div class="hero-title">CASH FLOW <span>ANALYSIS</span></div>
+      <div class="hero-period" id="hero-period">Período: Oct — Dic 2024 &nbsp;|&nbsp; Datos Auditados</div>
+    </div>
+    <div class="hero-badge">
+      <div class="badge-label">Net Cash Position</div>
+      <div class="badge-value positive" id="hero-net">$1,247K</div>
+      <div class="badge-change" id="hero-change">▲ +18.4% vs período anterior</div>
+    </div>
+  </div>
+  <div class="section-divider"></div>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row" id="kpi-row">
+      <div class="kpi-card highlight">
+        <div class="kpi-icon">⚙️</div>
+        <div class="kpi-label">Flujo Operativo</div>
+        <div class="kpi-value pos" id="kpi-op">$2,184K</div>
+        <div class="kpi-sub"><span class="kpi-arrow up">▲</span> <span id="kpi-op-pct">+22.1% vs anterior</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-label">Flujo de Inversión</div>
+        <div class="kpi-value neg" id="kpi-inv">-$680K</div>
+        <div class="kpi-sub"><span class="kpi-arrow down">▼</span> <span id="kpi-inv-pct">Adquisición de activos</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">🏦</div>
+        <div class="kpi-label">Flujo de Financiamiento</div>
+        <div class="kpi-value neg" id="kpi-fin">-$257K</div>
+        <div class="kpi-sub"><span class="kpi-arrow down">▼</span> <span id="kpi-fin-pct">Pago de deuda neto</span></div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-label">Variación Neta</div>
+        <div class="kpi-value pos" id="kpi-net">+$1,247K</div>
+        <div class="kpi-sub"><span class="kpi-arrow up">▲</span> Saldo final: <span id="kpi-balance">$3,891K</span></div>
+      </div>
+    </div>
+
+    <!-- TREND + DONUT -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Evolución del Flujo Mensual</div>
+        <div class="chart-subtitle">Operating, Investing & Financing — últimos 12 meses</div>
+        <div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Composición del Flujo</div>
+        <div class="chart-subtitle">Distribución por categoría</div>
+        <div class="chart-wrap"><canvas id="donutChart" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- WATERFALL + BAR -->
+    <div class="waterfall-row">
+      <div class="chart-card">
+        <div class="chart-title">Waterfall — Flujo Neto</div>
+        <div class="chart-subtitle">Descomposición de variación de efectivo</div>
+        <div class="chart-wrap"><canvas id="waterfallChart" height="220"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Flujo Operativo vs Gastos</div>
+        <div class="chart-subtitle">Ingresos de operación vs egresos trimestrales</div>
+        <div class="chart-wrap"><canvas id="barCompareChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <!-- DETAILED TABLE -->
+    <div class="table-card">
+      <div class="chart-title" style="margin-bottom:4px;">Estado de Flujo de Efectivo — Detalle</div>
+      <div class="chart-subtitle">Cifras en USD miles (K)</div>
+      <table id="cfTable">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Categoría</th>
+            <th style="text-align:right">Oct 2024</th>
+            <th style="text-align:right">Nov 2024</th>
+            <th style="text-align:right">Dic 2024</th>
+            <th style="text-align:right">Total Q4</th>
+          </tr>
+        </thead>
+        <tbody id="cfTableBody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">
+      <div class="footer-dot"></div>
+      <span>Cash Flow Dashboard — Análisis Financiero 2024</span>
+    </div>
+    <span>Datos ilustrativos para presentación | v1.0</span>
+    <span id="footer-ts"></span>
+  </footer>
+
+</div><!-- /app -->
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-title">Importar Datos</div>
+    <div class="modal-sub">Carga tu archivo CSV o Excel con el estado de flujo de efectivo</div>
+    <div class="format-note">
+      <strong>Formato requerido de columnas:</strong>
+      Concepto | Categoría | Oct | Nov | Dic | Total<br/>
+      Las categorías válidas son: <em>Operativo, Inversión, Financiamiento</em>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">📂</div>
+      <p>Arrastra tu archivo aquí o haz clic para seleccionar<br/><strong style="color:#fff">.CSV · .XLSX · .XLS</strong></p>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])"/>
+    <div class="upload-status" id="uploadStatus">✓ Archivo cargado correctamente</div>
+    <div class="modal-actions">
+      <button class="btn-close" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────
+   DATA — Fictitious trucking/factoring company
+───────────────────────────────────────────────────── */
+const PERIODS = {
+  Q4: {
+    label: 'Oct — Dic 2024',
+    months: ['Oct 2024','Nov 2024','Dic 2024'],
+    kpi: { op: 2184, inv: -680, fin: -257, net: 1247, balance: 3891, change: '+18.4%' },
+    monthly: {
+      operating:   [682, 734, 768],
+      investing:   [-180, -240, -260],
+      financing:   [-95, -80, -82],
+    },
+    trend12: {
+      labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+      operating:  [510,490,560,620,580,640,700,720,695,682,734,768],
+      investing:  [-120,-100,-140,-160,-180,-200,-210,-190,-220,-180,-240,-260],
+      financing:  [-80,-70,-90,-85,-95,-100,-88,-92,-95,-95,-80,-82],
+    }
+  },
+  Q3: {
+    label: 'Jul — Sep 2024',
+    months: ['Jul 2024','Ago 2024','Sep 2024'],
+    kpi: { op: 2115, inv: -620, fin: -283, net: 1212, balance: 2644, change: '+14.1%' },
+    monthly: { operating:[700,720,695], investing:[-210,-190,-220], financing:[-88,-92,-103] },
+    trend12: null,
+  },
+  Q2: {
+    label: 'Abr — Jun 2024',
+    months: ['Abr 2024','May 2024','Jun 2024'],
+    kpi: { op: 1840, inv: -540, fin: -240, net: 1060, balance: 1432, change: '+9.8%' },
+    monthly: { operating:[620,580,640], investing:[-160,-180,-200], financing:[-85,-95,-100] },
+    trend12: null,
+  },
+  YTD: {
+    label: 'Ene — Dic 2024',
+    months: ['Q1 2024','Q2 2024','Q3 2024','Q4 2024'],
+    kpi: { op: 7880, inv: -2350, fin: -940, net: 4590, balance: 3891, change: '+27.3%' },
+    monthly: { operating:[1550,1840,2115,2184], investing:[-540,-540,-620,-680], financing:[-220,-240,-283,-257] },
+    trend12: null,
+  }
+};
+
+const TABLE_ROWS = [
+  // OPERATING
+  {section:'ACTIVIDADES OPERATIVAS'},
+  {concept:'Utilidad Neta del Período', cat:'Operativo', vals:[420,465,490]},
+  {concept:'Depreciación y Amortización', cat:'Operativo', vals:[95,98,102]},
+  {concept:'Facturas cedidas (Factoring)', cat:'Operativo', vals:[310,340,380]},
+  {concept:'Cuentas por cobrar', cat:'Operativo', vals:[-88,-92,-110]},
+  {concept:'Cuentas por pagar', cat:'Operativo', vals:[32,28,35]},
+  {concept:'Gastos anticipados y otros', cat:'Operativo', vals:[-87,-105,-129]},
+  {subtotal: 'Flujo Neto Operativo', vals:[682,734,768]},
+  // INVESTING
+  {section:'ACTIVIDADES DE INVERSIÓN'},
+  {concept:'Compra de tractocamiones', cat:'Inversión', vals:[-120,-160,-180]},
+  {concept:'Compra de remolques', cat:'Inversión', vals:[-40,-55,-60]},
+  {concept:'Equipos y tecnología', cat:'Inversión', vals:[-20,-25,-20]},
+  {subtotal: 'Flujo Neto de Inversión', vals:[-180,-240,-260]},
+  // FINANCING
+  {section:'ACTIVIDADES DE FINANCIAMIENTO'},
+  {concept:'Préstamo bancario recibido', cat:'Financiamiento', vals:[50,0,0]},
+  {concept:'Pago de capital de deuda', cat:'Financiamiento', vals:[-112,-50,-50]},
+  {concept:'Pago de intereses', cat:'Financiamiento', vals:[-33,-30,-32]},
+  {subtotal: 'Flujo Neto de Financiamiento', vals:[-95,-80,-82]},
+  // NET
+  {total: 'VARIACIÓN NETA DE EFECTIVO', vals:[407,414,426]},
+];
+
+let currentPeriod = 'Q4';
+let charts = {};
+
+/* ─────────────────────────────────────────────────────
+   CHART.JS DEFAULTS
+───────────────────────────────────────────────────── */
+Chart.defaults.color = 'rgba(255,255,255,0.55)';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = 'Montserrat';
+Chart.defaults.font.size = 11;
+
+const RED = '#D10000', GREEN = '#00E5A0', WHITE = 'rgba(255,255,255,0.85)', MUTED = 'rgba(255,255,255,0.25)';
+
+/* ─────────────────────────────────────────────────────
+   RENDER
+───────────────────────────────────────────────────── */
+function setPeriod(p, btn) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+function renderAll() {
+  const d = PERIODS[currentPeriod];
+  // Hero
+  document.getElementById('hero-period').textContent = `Período: ${d.label} · Datos Ilustrativos`;
+  document.getElementById('hero-net').textContent = `$${d.kpi.net.toLocaleString()}K`;
+  document.getElementById('hero-change').textContent = `▲ ${d.kpi.change} vs período anterior`;
+  // KPIs
+  document.getElementById('kpi-op').textContent   = `$${d.kpi.op.toLocaleString()}K`;
+  document.getElementById('kpi-inv').textContent  = `-$${Math.abs(d.kpi.inv).toLocaleString()}K`;
+  document.getElementById('kpi-fin').textContent  = `-$${Math.abs(d.kpi.fin).toLocaleString()}K`;
+  document.getElementById('kpi-net').textContent  = `+$${d.kpi.net.toLocaleString()}K`;
+  document.getElementById('kpi-balance').textContent = `$${d.kpi.balance.toLocaleString()}K`;
+  // Charts
+  buildTrendChart(d);
+  buildDonutChart(d);
+  buildWaterfallChart(d);
+  buildBarCompareChart(d);
+  buildTable(d);
+}
+
+/* TREND */
+function buildTrendChart(d) {
+  const src = d.trend12 || {
+    labels: d.months,
+    operating: d.monthly.operating,
+    investing: d.monthly.investing,
+    financing: d.monthly.financing,
+  };
+  if (charts.trend) charts.trend.destroy();
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const gradOp = ctx.createLinearGradient(0,0,0,320);
+  gradOp.addColorStop(0,'rgba(0,229,160,0.28)'); gradOp.addColorStop(1,'rgba(0,229,160,0.00)');
+  charts.trend = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels: src.labels,
+      datasets:[
+        {label:'Operativo', data: src.operating, borderColor: GREEN, backgroundColor: gradOp, borderWidth:2, pointRadius:4, pointBackgroundColor:GREEN, tension:0.4, fill:true},
+        {label:'Inversión', data: src.investing, borderColor: RED, backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:RED, tension:0.4, borderDash:[5,3]},
+        {label:'Financiamiento', data: src.financing, borderColor:'rgba(255,255,255,0.50)', backgroundColor:'transparent', borderWidth:1.5, pointRadius:3, tension:0.4, borderDash:[2,4]},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{usePointStyle:true, pointStyleWidth:8, boxHeight:5, padding:18, font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
+        tooltip:{
+          backgroundColor:'rgba(0,0,0,0.88)',
+          borderColor:'rgba(209,0,0,0.40)',
+          borderWidth:1,
+          titleFont:{weight:'700',size:11},
+          callbacks:{label:ctx=>`  ${ctx.dataset.label}: $${ctx.raw?.toLocaleString()}K`}
+        }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false}, ticks:{font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.06)'}, ticks:{font:{size:10}, callback:v=>`$${v}K`}}
+      }
+    }
+  });
+}
+
+/* DONUT */
+function buildDonutChart(d) {
+  const opSum  = d.monthly.operating.reduce((a,b)=>a+b,0);
+  const invSum = Math.abs(d.monthly.investing.reduce((a,b)=>a+b,0));
+  const finSum = Math.abs(d.monthly.financing.reduce((a,b)=>a+b,0));
+  if (charts.donut) charts.donut.destroy();
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  charts.donut = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Operativo','Inversión','Financiamiento'],
+      datasets:[{data:[opSum,invSum,finSum],backgroundColor:['rgba(0,229,160,0.80)','rgba(209,0,0,0.80)','rgba(255,255,255,0.40)'],borderColor:['rgba(0,229,160,1)','rgba(209,0,0,1)','rgba(255,255,255,0.60)'],borderWidth:1.5,hoverOffset:8}]
+    },
+    options:{
+      responsive:true, cutout:'68%',
+      plugins:{
+        legend:{position:'bottom',labels:{usePointStyle:true,padding:16,font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
+        tooltip:{backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,callbacks:{label:ctx=>`${ctx.label}: $${ctx.raw.toLocaleString()}K`}}
+      }
+    }
+  });
+}
+
+/* WATERFALL */
+function buildWaterfallChart(d) {
+  const {op,inv,fin,net,balance} = d.kpi;
+  const prev = balance - net;
+  const labels  = ['Saldo Inicial','Flujo Operativo','Flujo Inversión','Flujo Financiamiento','Saldo Final'];
+  const floats  = [0, prev, prev+op, prev+op+inv, 0];
+  const bars    = [prev, op, inv, fin, balance];
+  const colors  = [
+    'rgba(255,255,255,0.30)',
+    op>=0  ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
+    inv>=0 ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
+    fin>=0 ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
+    'rgba(255,80,80,0.85)',
+  ];
+  if (charts.waterfall) charts.waterfall.destroy();
+  const ctx = document.getElementById('waterfallChart').getContext('2d');
+  charts.waterfall = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Base', data:floats, backgroundColor:'transparent', borderWidth:0, stack:'w'},
+        {label:'Flujo', data:bars.map(v=>Math.abs(v)), backgroundColor:colors, borderRadius:2, borderWidth:0, stack:'w'}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,
+          filter: item => item.datasetIndex === 1,
+          callbacks:{label:ctx=>`$${bars[ctx.dataIndex].toLocaleString()}K`}
+        }
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:9.5}}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'}, stacked:true, ticks:{callback:v=>`$${v}K`,font:{size:10}}}
+      }
+    }
+  });
+}
+
+/* BAR COMPARE */
+function buildBarCompareChart(d) {
+  const m = d.months.length > 4 ? ['Q1','Q2','Q3','Q4'] : d.months.map(m=>m.split(' ')[0]);
+  const inflows  = d.monthly.operating;
+  const outflows = d.monthly.investing.map((v,i) => Math.abs(v) + Math.abs(d.monthly.financing[i]));
+  if (charts.bar) charts.bar.destroy();
+  const ctx = document.getElementById('barCompareChart').getContext('2d');
+  charts.bar = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: m,
+      datasets:[
+        {label:'Ingresos Operativos', data: inflows, backgroundColor:'rgba(0,229,160,0.70)', borderRadius:3, borderWidth:0},
+        {label:'Egresos (Inv+Fin)',   data: outflows, backgroundColor:'rgba(209,0,0,0.70)', borderRadius:3, borderWidth:0}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{usePointStyle:true,padding:16,font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
+        tooltip:{backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,callbacks:{label:ctx=>`${ctx.dataset.label}: $${ctx.raw.toLocaleString()}K`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:v=>`$${v}K`,font:{size:10}}}
+      }
+    }
+  });
+}
+
+/* TABLE */
+function buildTable(d) {
+  const months = d.months.length > 4
+    ? ['Q1 2024','Q2 2024','Q3 2024','Q4 2024']
+    : d.months;
+  const body = document.getElementById('cfTableBody');
+  body.innerHTML = '';
+  TABLE_ROWS.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row.section) {
+      tr.className = 'section-header';
+      tr.innerHTML = `<td colspan="6">${row.section}</td>`;
+    } else if (row.subtotal) {
+      tr.className = 'tr-subtotal';
+      const total = row.vals.reduce((a,b)=>a+b,0);
+      const isNeg = total < 0;
+      tr.innerHTML = `
+        <td colspan="2">${row.subtotal}</td>
+        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
+        <td class="${isNeg?'td-negative':'td-positive'}">${isNeg?'':'+'}${total.toLocaleString()}</td>
+      `;
+    } else if (row.total) {
+      tr.className = 'tr-total';
+      const total = row.vals.reduce((a,b)=>a+b,0);
+      tr.innerHTML = `
+        <td colspan="2">${row.total}</td>
+        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
+        <td class="${total>=0?'td-positive':'td-negative'}">${total>=0?'+':''}${total.toLocaleString()}</td>
+      `;
+    } else {
+      const total = row.vals.reduce((a,b)=>a+b,0);
+      tr.innerHTML = `
+        <td>${row.concept}</td>
+        <td class="td-category">${row.cat}</td>
+        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
+        <td class="${total>=0?'td-positive':'td-negative'} td-neutral">${total>=0?'+':''}${total.toLocaleString()}</td>
+      `;
+    }
+    body.appendChild(tr);
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   IMPORT MODAL
+───────────────────────────────────────────────────── */
+function openModal()  { document.getElementById('importModal').classList.add('open'); }
+function closeModal() { document.getElementById('importModal').classList.remove('open'); }
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows = [];
+      if (ext === 'csv') {
+        const text = e.target.result;
+        rows = text.trim().split('\n').slice(1).map(r => r.split(',').map(c=>c.trim().replace(/"/g,'')));
+      } else {
+        const wb = XLSX.read(e.target.result, {type:'binary'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {header:1}).slice(1);
+      }
+      parseImportedRows(rows);
+      document.getElementById('uploadStatus').style.display = 'block';
+      setTimeout(closeModal, 1400);
+    } catch(err) { alert('Error al procesar el archivo. Verifica el formato.'); }
+  };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+
+function parseImportedRows(rows) {
+  // Rebuild TABLE_ROWS from imported data and re-render table
+  // Expected: [Concept, Category, v1, v2, v3, total]
+  const newRows = [];
+  let lastCat = null;
+  rows.forEach(r => {
+    if (!r[0]) return;
+    const cat = (r[1] || '').toString().trim();
+    if (cat && cat !== lastCat) {
+      newRows.push({ section: cat.toUpperCase() + ' (Importado)' });
+      lastCat = cat;
+    }
+    const vals = [parseFloat(r[2])||0, parseFloat(r[3])||0, parseFloat(r[4])||0];
+    newRows.push({ concept: r[0].toString(), cat, vals });
+  });
+  // Rebuild the table with new rows
+  const body = document.getElementById('cfTableBody');
+  body.innerHTML = '';
+  newRows.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row.section) {
+      tr.className = 'section-header';
+      tr.innerHTML = `<td colspan="6">${row.section}</td>`;
+    } else {
+      const total = row.vals.reduce((a,b)=>a+b,0);
+      tr.innerHTML = `
+        <td>${row.concept}</td>
+        <td class="td-category">${row.cat}</td>
+        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
+        <td class="${total>=0?'td-positive':'td-negative'} td-neutral">${total>=0?'+':''}${total.toLocaleString()}</td>
+      `;
+    }
+    body.appendChild(tr);
+  });
+}
+
+/* ─────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────── */
+document.getElementById('footer-ts').textContent =
+  new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
+
+document.getElementById('importModal').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+renderAll();
+</script>
+</body>
+</html>
