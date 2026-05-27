@@ -1,836 +1,1623 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Cash Flow Analysis — Financial Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowDesk · Factoring Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
   :root {
-    --red: #D10000;
-    --red-dark: #8B0000;
-    --red-glow: rgba(209,0,0,0.35);
-    --white: #FFFFFF;
-    --black: #000000;
-    --glass-bg: rgba(0,0,0,0.52);
-    --glass-border: rgba(255,255,255,0.10);
-    --glass-card: rgba(10,10,10,0.62);
-    --text-primary: #FFFFFF;
-    --text-secondary: rgba(255,255,255,0.60);
-    --text-muted: rgba(255,255,255,0.35);
-    --positive: #00E5A0;
-    --negative: #D10000;
+    --black: #0a0a0a;
+    --black2: #111111;
+    --black3: #1a1a1a;
+    --black4: #252525;
+    --black5: #303030;
+    --red: #c8102e;
+    --red-dim: #8a0b1f;
+    --red-glow: rgba(200,16,46,0.12);
+    --white: #f5f5f0;
+    --white2: #dcdcd4;
+    --white3: #aaaaaa;
+    --white4: #666666;
+    --green: #1d9e75;
+    --amber: #d4a017;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Montserrat', sans-serif;
-    background: #000;
-    color: var(--text-primary);
+    background: var(--black);
+    color: var(--white);
+    font-family: var(--font-display);
     min-height: 100vh;
     overflow-x: hidden;
   }
 
-  /* ── BACKGROUND ── */
-  #bg-gif {
-    position: fixed; inset: 0; z-index: 0;
-    background: url('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmhuNXg0am9nazM3M2FoYW92YXZwdzV6NWV1bzdmd3Z0eGdkc2RycSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l1IXYZdEKzOZNEvug/giphy.gif') center/cover no-repeat;
-    filter: brightness(0.28) saturate(0.6);
-  }
-  #bg-overlay {
-    position: fixed; inset: 0; z-index: 1;
-    background: linear-gradient(160deg, rgba(0,0,0,0.70) 0%, rgba(80,0,0,0.18) 50%, rgba(0,0,0,0.82) 100%);
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--black2); }
+  ::-webkit-scrollbar-thumb { background: var(--red-dim); border-radius: 2px; }
+
+  /* ─── LAYOUT ─── */
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+
+  /* ─── SIDEBAR ─── */
+  .sidebar {
+    background: var(--black2);
+    border-right: 1px solid var(--black5);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
 
-  /* ── LAYOUT ── */
-  #app { position: relative; z-index: 2; min-height: 100vh; }
-
-  /* ── HEADER ── */
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 40px;
-    border-bottom: 1px solid rgba(209,0,0,0.30);
-    background: rgba(0,0,0,0.60);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .logo-area { display: flex; align-items: center; gap: 14px; }
-  .logo-img {
-    height: 44px; width: auto;
-    filter: brightness(0) invert(1);
-    object-fit: contain;
-  }
-  .brand-sep { width: 1px; height: 32px; background: rgba(209,0,0,0.50); }
-  .brand-label { display: flex; flex-direction: column; gap: 2px; }
-  .brand-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.25rem; letter-spacing: 3px; color: var(--white); line-height: 1; }
-  .brand-sub { font-size: 0.62rem; letter-spacing: 2.5px; color: var(--text-secondary); text-transform: uppercase; }
-
-  .header-right { display: flex; align-items: center; gap: 20px; }
-  .period-selector {
-    display: flex; gap: 6px;
-  }
-  .period-btn {
-    background: transparent; border: 1px solid var(--glass-border);
-    color: var(--text-secondary); font-family: 'Montserrat', sans-serif;
-    font-size: 0.70rem; font-weight: 600; letter-spacing: 1.5px;
-    padding: 6px 14px; cursor: pointer; transition: all .2s;
-    text-transform: uppercase;
-  }
-  .period-btn:hover, .period-btn.active {
-    background: var(--red); border-color: var(--red);
-    color: #fff;
+  .logo-area {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid var(--black5);
   }
 
-  .import-btn {
-    display: flex; align-items: center; gap: 8px;
-    background: transparent; border: 1px solid var(--red);
-    color: var(--red); font-family: 'Montserrat', sans-serif;
-    font-size: 0.70rem; font-weight: 700; letter-spacing: 2px;
-    padding: 8px 18px; cursor: pointer; transition: all .25s;
-    text-transform: uppercase;
-  }
-  .import-btn:hover { background: var(--red); color: #fff; }
-  .import-btn svg { width: 14px; height: 14px; }
-
-  /* ── HERO TITLE ── */
-  .hero {
-    padding: 36px 40px 8px;
-    display: flex; align-items: flex-end; justify-content: space-between;
-  }
-  .hero-text {}
-  .hero-eyebrow { font-size: 0.65rem; letter-spacing: 4px; color: var(--red); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
-  .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: 4px; line-height: 1; }
-  .hero-title span { color: var(--red); }
-  .hero-period { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; letter-spacing: 1px; }
-
-  .hero-badge {
-    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
-  }
-  .badge-label { font-size: 0.60rem; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
-  .badge-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.6rem; letter-spacing: 2px; }
-  .badge-value.positive { color: var(--positive); }
-  .badge-value.negative { color: var(--negative); }
-  .badge-change { font-size: 0.68rem; color: var(--text-secondary); }
-
-  /* ── SECTION DIVIDER ── */
-  .section-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(209,0,0,0.40), transparent);
-    margin: 12px 40px;
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
   }
 
-  /* ── GRID LAYOUT ── */
-  .main-content { padding: 12px 40px 60px; display: flex; flex-direction: column; gap: 24px; }
-
-  /* ── KPI CARDS ── */
-  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-
-  .kpi-card {
-    background: var(--glass-card);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    padding: 22px 24px;
-    position: relative; overflow: hidden;
-    transition: transform .2s, border-color .2s;
-  }
-  .kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  .logo-dot {
+    width: 8px;
+    height: 8px;
     background: var(--red);
-  }
-  .kpi-card:hover { transform: translateY(-3px); border-color: rgba(209,0,0,0.35); }
-
-  .kpi-card.highlight { border-color: rgba(209,0,0,0.45); }
-  .kpi-card.highlight::before { background: linear-gradient(90deg, var(--red), #ff4444); }
-
-  .kpi-label { font-size: 0.62rem; letter-spacing: 2.5px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
-  .kpi-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.0rem; letter-spacing: 1px; line-height: 1; }
-  .kpi-value.pos { color: var(--positive); }
-  .kpi-value.neg { color: var(--red); }
-  .kpi-value.neutral { color: var(--white); }
-  .kpi-sub { margin-top: 8px; font-size: 0.65rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
-  .kpi-arrow { font-size: 0.80rem; }
-  .kpi-arrow.up { color: var(--positive); }
-  .kpi-arrow.down { color: var(--red); }
-  .kpi-icon {
-    position: absolute; right: 18px; top: 18px;
-    font-size: 1.4rem; opacity: 0.18;
+    border-radius: 50%;
+    animation: pulse 2.5s ease-in-out infinite;
   }
 
-  /* ── CHARTS GRID ── */
-  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-  .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 var(--red-glow); }
+    50% { opacity: 0.8; transform: scale(1.1); box-shadow: 0 0 0 6px transparent; }
+  }
 
-  .chart-card {
-    background: var(--glass-card);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    padding: 24px;
+  .logo-text {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--white);
   }
-  .chart-title {
-    font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase;
-    color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;
-  }
-  .chart-subtitle { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 20px; }
-  .chart-wrap { position: relative; }
 
-  /* ── TABLE ── */
-  .table-card {
-    background: var(--glass-card);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    padding: 24px;
-    overflow-x: auto;
+  .logo-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-left: 18px;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-  thead tr { border-bottom: 1px solid rgba(209,0,0,0.35); }
-  thead th { padding: 8px 14px; text-align: left; font-size: 0.60rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }
-  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .15s; }
-  tbody tr:hover { background: rgba(209,0,0,0.06); }
-  tbody td { padding: 11px 14px; color: var(--text-primary); }
-  tbody td:first-child { font-weight: 500; }
-  .td-category { color: var(--text-muted); font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; }
-  .td-positive { color: var(--positive); font-family: 'Share Tech Mono', monospace; text-align: right; }
-  .td-negative { color: var(--red); font-family: 'Share Tech Mono', monospace; text-align: right; }
-  .td-neutral { font-family: 'Share Tech Mono', monospace; text-align: right; }
-  .tr-subtotal td { background: rgba(255,255,255,0.03); font-weight: 600; font-size: 0.80rem; border-top: 1px solid rgba(255,255,255,0.08); }
-  .tr-total td { background: rgba(209,0,0,0.10); font-weight: 700; font-size: 0.82rem; border-top: 1px solid rgba(209,0,0,0.40); }
-  .section-header td { padding: 14px 14px 6px; color: var(--red); font-size: 0.62rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
 
-  /* ── WATERFALL BAR ── */
-  .waterfall-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .period-badge {
+    margin: 16px 24px 0;
+    background: var(--black4);
+    border: 1px solid var(--black5);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--white3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-  /* ── IMPORT MODAL ── */
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; z-index: 999;
-    background: rgba(0,0,0,0.80); backdrop-filter: blur(8px);
-    align-items: center; justify-content: center;
+  .period-badge span { color: var(--red); font-weight: 500; }
+
+  .nav { flex: 1; padding: 20px 0; }
+
+  .nav-section {
+    padding: 0 16px;
+    margin-bottom: 8px;
   }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: rgba(10,10,10,0.95); border: 1px solid rgba(209,0,0,0.40);
-    padding: 36px; min-width: 420px; max-width: 90vw;
-    animation: modalIn .3s ease;
+
+  .nav-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--white4);
+    padding: 0 8px;
+    margin-bottom: 6px;
   }
-  @keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; margin-bottom: 6px; }
-  .modal-sub { font-size: 0.70rem; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 24px; }
-  .drop-zone {
-    border: 2px dashed rgba(209,0,0,0.40); padding: 40px 24px;
-    text-align: center; cursor: pointer; transition: border-color .2s;
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white4);
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--black4); color: var(--white2); }
+
+  .nav-item.active {
+    background: var(--red-glow);
+    border-color: rgba(200,16,46,0.25);
+    color: var(--white);
+  }
+
+  .nav-item.active .nav-icon { color: var(--red); }
+
+  .nav-icon { font-size: 16px; width: 18px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--black5);
+  }
+
+  .health-bar-wrap { margin-bottom: 8px; }
+  .health-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    margin-bottom: 6px;
+  }
+  .health-label span { color: var(--green); }
+
+  .health-bar {
+    height: 3px;
+    background: var(--black5);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .health-fill {
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, var(--green), #2ec89a);
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* ─── MAIN ─── */
+  .main { display: flex; flex-direction: column; overflow-y: auto; }
+
+  /* ─── TOPBAR ─── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 36px;
+    border-bottom: 1px solid var(--black5);
+    background: var(--black);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .topbar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--white2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+
+  .alert-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(200,16,46,0.1);
+    border: 1px solid rgba(200,16,46,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--red);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .alert-chip:hover { background: rgba(200,16,46,0.18); }
+  .alert-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: pulse 1.5s infinite; }
+
+  .export-btn {
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .export-btn:hover { background: #a80d26; }
+  .export-btn:active { transform: scale(0.97); }
+
+  /* ─── CONTENT ─── */
+  .content { padding: 32px 36px; flex: 1; }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
     margin-bottom: 20px;
   }
-  .drop-zone:hover, .drop-zone.dragover { border-color: var(--red); background: rgba(209,0,0,0.05); }
-  .drop-zone p { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
-  .drop-icon { font-size: 2.4rem; }
-  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
-  .btn-close {
-    background: transparent; border: 1px solid var(--glass-border);
-    color: var(--text-secondary); font-family: 'Montserrat', sans-serif;
-    font-size: 0.70rem; font-weight: 600; letter-spacing: 2px;
-    padding: 10px 22px; cursor: pointer; transition: all .2s; text-transform: uppercase;
-  }
-  .btn-close:hover { border-color: #fff; color: #fff; }
 
-  .format-note {
-    background: rgba(209,0,0,0.08); border-left: 2px solid var(--red);
-    padding: 10px 14px; font-size: 0.68rem; color: var(--text-secondary);
-    margin-bottom: 20px; line-height: 1.6;
-  }
-  .format-note strong { color: var(--text-primary); display: block; margin-bottom: 4px; }
-
-  /* ── FOOTER ── */
-  footer {
-    border-top: 1px solid rgba(209,0,0,0.20);
-    padding: 20px 40px;
-    background: rgba(0,0,0,0.70);
-    backdrop-filter: blur(12px);
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 0.62rem; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase;
-  }
-  .footer-brand { display: flex; align-items: center; gap: 10px; }
-  .footer-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--red); }
-
-  /* ── ANIMATED RED LINE ── */
-  .red-line {
-    position: fixed; left: 0; top: 0; bottom: 0; width: 3px; z-index: 999;
-    background: linear-gradient(180deg, transparent, var(--red), transparent);
-    animation: lineMove 4s ease-in-out infinite;
-  }
-  @keyframes lineMove {
-    0%, 100% { opacity: 0.3; } 50% { opacity: 0.8; }
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--white4);
   }
 
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(209,0,0,0.40); border-radius: 3px; }
-
-  /* ── UPLOAD STATUS ── */
-  .upload-status {
-    font-size: 0.72rem; color: var(--positive); margin-top: 10px;
-    display: none; text-align: center; letter-spacing: 1px;
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--black5);
   }
 
-  /* ── TOOLTIP OVERRIDE ── */
-  .chartjs-tooltip { backdrop-filter: blur(12px) !important; }
-
-  @media (max-width: 1100px) {
-    .kpi-row { grid-template-columns: repeat(2, 1fr); }
-    .charts-row, .charts-row-3, .waterfall-row { grid-template-columns: 1fr; }
+  /* ─── KPI GRID ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--black5);
+    border: 1px solid var(--black5);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
   }
-  @media (max-width: 640px) {
-    header { padding: 14px 18px; }
-    .main-content { padding: 12px 18px 40px; }
-    .hero { padding: 24px 18px 8px; flex-direction: column; gap: 14px; align-items: flex-start; }
-    .kpi-row { grid-template-columns: 1fr 1fr; }
+
+  .kpi-card {
+    background: var(--black2);
+    padding: 20px 20px 18px;
+    position: relative;
+    cursor: default;
+    transition: background 0.15s;
+  }
+
+  .kpi-card:hover { background: var(--black3); }
+
+  .kpi-card.accent {
+    background: var(--black3);
+  }
+
+  .kpi-card.accent::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--red);
+  }
+
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--white);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value.red { color: var(--red); }
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.amber { color: var(--amber); }
+
+  .kpi-delta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .kpi-delta.up { color: var(--green); }
+  .kpi-delta.down { color: var(--red); }
+  .kpi-delta.warn { color: var(--amber); }
+  .kpi-delta.neutral { color: var(--white4); }
+
+  /* ─── CHARTS ROW ─── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .chart-card {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 40px;
+    border-top: 1px solid var(--red);
+    border-left: 1px solid var(--red);
+    border-radius: 8px 0 0 0;
+    opacity: 0.4;
+  }
+
+  .chart-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white3);
+    margin-bottom: 4px;
+  }
+
+  .chart-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    margin-bottom: 20px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white3);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ─── EBIT / FLUJO SECTION ─── */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .metric-card {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .metric-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white3);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .metric-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    background: var(--black5);
+    color: var(--white4);
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .waterfall {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .wf-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--black4);
+    font-size: 13px;
+  }
+
+  .wf-row:last-child { border-bottom: none; }
+
+  .wf-label { color: var(--white2); font-weight: 400; }
+
+  .wf-bar-wrap {
+    width: 80px;
+    height: 4px;
+    background: var(--black5);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .wf-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .wf-bar.green { background: var(--green); }
+  .wf-bar.red { background: var(--red); }
+  .wf-bar.neutral { background: var(--white4); }
+
+  .wf-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-align: right;
+    min-width: 70px;
+  }
+
+  .wf-val.pos { color: var(--green); }
+  .wf-val.neg { color: var(--red); }
+  .wf-val.total {
+    color: var(--white);
+    font-weight: 500;
+    border-top: 1px solid var(--white4);
+    padding-top: 4px;
+  }
+
+  .wf-row.total-row {
+    background: var(--black3);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 6px -12px 0;
+  }
+
+  /* ─── CARTERA TABLE ─── */
+  .table-card {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+
+  .table-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--black5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .table-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--white3);
+  }
+
+  .search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--black4);
+    border: 1px solid var(--black5);
+    border-radius: 6px;
+    padding: 6px 12px;
+  }
+
+  .search-wrap input {
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--white2);
+    width: 160px;
+  }
+
+  .search-wrap input::placeholder { color: var(--white4); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--white4);
+    text-align: left;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--black5);
+    font-weight: 400;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--black4);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  tbody tr:hover { background: var(--black3); }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td {
+    padding: 13px 24px;
+    color: var(--white2);
+    font-weight: 400;
+  }
+
+  .td-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  .status-ok { background: rgba(29,158,117,0.12); color: #2ec89a; border: 1px solid rgba(29,158,117,0.2); }
+  .status-warn { background: rgba(212,160,23,0.12); color: #d4a017; border: 1px solid rgba(212,160,23,0.2); }
+  .status-bad { background: rgba(200,16,46,0.12); color: var(--red); border: 1px solid rgba(200,16,46,0.25); }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* ─── SEMAFORO ─── */
+  .semaforo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .sem-card {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+  }
+
+  .sem-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .sem-green-bg { background: rgba(29,158,117,0.15); color: var(--green); border: 1px solid rgba(29,158,117,0.25); }
+  .sem-amber-bg { background: rgba(212,160,23,0.15); color: var(--amber); border: 1px solid rgba(212,160,23,0.25); }
+  .sem-red-bg   { background: rgba(200,16,46,0.12);  color: var(--red);   border: 1px solid rgba(200,16,46,0.25); }
+
+  .sem-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--white2);
+    margin-bottom: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  .sem-desc {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    line-height: 1.5;
+  }
+
+  .sem-current {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .sc-green { background: rgba(29,158,117,0.15); color: var(--green); }
+  .sc-amber { background: rgba(212,160,23,0.15); color: var(--amber); }
+
+  /* ─── ALERTS PANEL ─── */
+  .alerts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .alert-row {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-left: 3px solid;
+    border-radius: 0 6px 6px 0;
+    padding: 14px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--white2);
+    line-height: 1.5;
+  }
+
+  .alert-row.danger { border-left-color: var(--red); }
+  .alert-row.warning { border-left-color: var(--amber); }
+  .alert-row.success { border-left-color: var(--green); }
+
+  .alert-icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+  .danger .alert-icon { color: var(--red); }
+  .warning .alert-icon { color: var(--amber); }
+  .success .alert-icon { color: var(--green); }
+
+  .alert-strong { font-weight: 600; color: var(--white); }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--black5);
+  }
+
+  .tab {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--white4);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    margin-bottom: -1px;
+  }
+
+  .tab:hover { color: var(--white2); }
+  .tab.active { color: var(--white); border-bottom-color: var(--red); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    padding: 16px 36px;
+    border-top: 1px solid var(--black5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+  }
+
+  .footer-right { display: flex; gap: 20px; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card, .chart-card, .metric-card, .sem-card, .table-card {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+  .kpi-card:nth-child(5) { animation-delay: 0.25s; }
+  .kpi-card:nth-child(6) { animation-delay: 0.30s; }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--black2);
+    border: 1px solid var(--black5);
+    border-radius: 10px;
+    padding: 28px;
+    max-width: 420px;
+    width: 90%;
+    animation: fadeUp 0.25s ease;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .modal-sub {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--white4);
+    margin-bottom: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  .modal-body {
+    font-size: 13px;
+    color: var(--white2);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .modal-close {
+    background: var(--black4);
+    border: 1px solid var(--black5);
+    color: var(--white2);
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .modal-close:hover { background: var(--black5); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+    .charts-row, .metrics-row { grid-template-columns: 1fr; }
+    .semaforo-grid { grid-template-columns: 1fr; }
+    .content { padding: 20px; }
+    .topbar { padding: 16px 20px; }
   }
 </style>
 </head>
 <body>
 
-<div id="bg-gif"></div>
-<div id="bg-overlay"></div>
-<div class="red-line"></div>
+<div class="app">
 
-<div id="app">
-
-  <!-- HEADER -->
-  <header>
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
     <div class="logo-area">
-      <img class="logo-img" src="data:image/png;base64,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" alt="Company Logo" onerror="this.style.display='none'"/>
-      <div class="brand-sep"></div>
-      <div class="brand-label">
-        <div class="brand-title">Nuko Capital Llc</div>
-        <div class="brand-sub">Cash Flow Analysis · 2026</div>
+      <div class="logo-mark">
+        <div class="logo-dot"></div>
+        <span class="logo-text">FlowDesk</span>
       </div>
-    </div>
-    <div class="header-right">
-      <div class="period-selector">
-        <button class="period-btn active" onclick="setPeriod('Q4',this)">Q4</button>
-        <button class="period-btn" onclick="setPeriod('Q3',this)">Q3</button>
-        <button class="period-btn" onclick="setPeriod('Q2',this)">Q2</button>
-        <button class="period-btn" onclick="setPeriod('YTD',this)">YTD</button>
-      </div>
-      <button class="import-btn" onclick="openModal()">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-        Import Data
-      </button>
-    </div>
-  </header>
-
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-text">
-      <div class="hero-eyebrow">Estado de Flujo de Efectivo</div>
-      <div class="hero-title">CASH FLOW <span>ANALYSIS</span></div>
-      <div class="hero-period" id="hero-period">Período: Oct — Dic 2026 &nbsp;|&nbsp; Datos Auditados</div>
-    </div>
-    <div class="hero-badge">
-      <div class="badge-label">Net Cash Position</div>
-      <div class="badge-value positive" id="hero-net">$1,247K</div>
-      <div class="badge-change" id="hero-change">▲ +18.4% vs período anterior</div>
-    </div>
-  </div>
-  <div class="section-divider"></div>
-
-  <!-- MAIN -->
-  <div class="main-content">
-
-    <!-- KPI CARDS -->
-    <div class="kpi-row" id="kpi-row">
-      <div class="kpi-card highlight">
-        <div class="kpi-icon">⚙️</div>
-        <div class="kpi-label">Flujo Operativo</div>
-        <div class="kpi-value pos" id="kpi-op">$2,184K</div>
-        <div class="kpi-sub"><span class="kpi-arrow up">▲</span> <span id="kpi-op-pct">+22.1% vs anterior</span></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">📦</div>
-        <div class="kpi-label">Flujo de Inversión</div>
-        <div class="kpi-value neg" id="kpi-inv">-$680K</div>
-        <div class="kpi-sub"><span class="kpi-arrow down">▼</span> <span id="kpi-inv-pct">Adquisición de activos</span></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">🏦</div>
-        <div class="kpi-label">Flujo de Financiamiento</div>
-        <div class="kpi-value neg" id="kpi-fin">-$257K</div>
-        <div class="kpi-sub"><span class="kpi-arrow down">▼</span> <span id="kpi-fin-pct">Pago de deuda neto</span></div>
-      </div>
-      <div class="kpi-card highlight">
-        <div class="kpi-icon">💰</div>
-        <div class="kpi-label">Variación Neta</div>
-        <div class="kpi-value pos" id="kpi-net">+$1,247K</div>
-        <div class="kpi-sub"><span class="kpi-arrow up">▲</span> Saldo final: <span id="kpi-balance">$3,891K</span></div>
+      <div class="logo-sub">Trucking Factoring · USA</div>
+      <div class="period-badge" style="margin-top:12px">
+        Periodo <span>Mayo 2026</span>
       </div>
     </div>
 
-    <!-- TREND + DONUT -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <div class="chart-title">Evolución del Flujo Mensual</div>
-        <div class="chart-subtitle">Operating, Investing & Financing — últimos 12 meses</div>
-        <div class="chart-wrap"><canvas id="trendChart" height="200"></canvas></div>
+    <nav class="nav">
+      <div class="nav-section">
+        <div class="nav-label">Principal</div>
+        <div class="nav-item active" onclick="navigate(this,'overview')">
+          <span class="nav-icon">◈</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="navigate(this,'flujo')">
+          <span class="nav-icon">⇅</span> Flujo de caja
+        </div>
+        <div class="nav-item" onclick="navigate(this,'ebit')">
+          <span class="nav-icon">◎</span> EBIT
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Composición del Flujo</div>
-        <div class="chart-subtitle">Distribución por categoría</div>
-        <div class="chart-wrap"><canvas id="donutChart" height="200"></canvas></div>
+      <div class="nav-section" style="margin-top:16px">
+        <div class="nav-label">Operación</div>
+        <div class="nav-item" onclick="navigate(this,'cartera')">
+          <span class="nav-icon">≡</span> Cartera
+          <span class="nav-badge">3</span>
+        </div>
+        <div class="nav-item" onclick="navigate(this,'alertas')">
+          <span class="nav-icon">⚠</span> Alertas
+          <span class="nav-badge">2</span>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="health-bar-wrap">
+        <div class="health-label">Salud financiera <span>72%</span></div>
+        <div class="health-bar"><div class="health-fill" id="healthFill"></div></div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:10px;color:var(--white4);margin-top:8px">
+        Actualizado hace 2 min
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Visión general</div>
+      <div class="topbar-right">
+        <div class="alert-chip" onclick="openModal('alertModal')">
+          <div class="alert-dot"></div>
+          3 alertas activas
+        </div>
+        <button class="export-btn" onclick="exportReport()">↓ Exportar PDF</button>
       </div>
     </div>
 
-    <!-- WATERFALL + BAR -->
-    <div class="waterfall-row">
-      <div class="chart-card">
-        <div class="chart-title">Waterfall — Flujo Neto</div>
-        <div class="chart-subtitle">Descomposición de variación de efectivo</div>
-        <div class="chart-wrap"><canvas id="waterfallChart" height="220"></canvas></div>
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- ─── OVERVIEW PANEL ─── -->
+      <div id="panel-overview" class="tab-panel active">
+
+        <div class="section-header">
+          <div class="section-title">Indicadores clave</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card accent">
+            <div class="kpi-label">Caja disponible</div>
+            <div class="kpi-value green" id="kpi-caja">$4.2M</div>
+            <div class="kpi-delta up">↑ +8% vs abril</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Fondeos (mes)</div>
+            <div class="kpi-value" id="kpi-fondeos">$18.7M</div>
+            <div class="kpi-delta up">↑ +12% vs abril</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Cobros recibidos</div>
+            <div class="kpi-value" id="kpi-cobros">$16.1M</div>
+            <div class="kpi-delta warn">⚠ 3 días atraso</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Cartera vencida</div>
+            <div class="kpi-value red" id="kpi-vencida">$1.3M</div>
+            <div class="kpi-delta down">↑ +$200K vs abril</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">DSO promedio</div>
+            <div class="kpi-value" id="kpi-dso">27 días</div>
+            <div class="kpi-delta up">✓ Objetivo: 30 días</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Línea crédito usada</div>
+            <div class="kpi-value amber" id="kpi-linea">68%</div>
+            <div class="kpi-delta warn">⚠ Límite $25M</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">Flujo de caja semanal</div>
+            <div class="chart-sub">Fondeos vs cobros · Mayo 2026</div>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#c8102e"></div>Fondeos salientes</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#1d9e75"></div>Cobros recibidos</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d4a017;border-radius:50%"></div>Caja neta</div>
+            </div>
+            <div style="position:relative;height:200px">
+              <canvas id="flowChart" role="img" aria-label="Flujo de caja semanal mayo 2026"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Composición de cartera</div>
+            <div class="chart-sub">Por estado de vencimiento</div>
+            <div style="position:relative;height:200px;margin-top:8px">
+              <canvas id="pieChart" role="img" aria-label="Composición de cartera por estado"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Alertas operativas</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="alerts-grid">
+          <div class="alert-row danger">
+            <span class="alert-icon">●</span>
+            <div><span class="alert-strong">3 brokers con mora +45 días</span> — Total expuesto: $680K. Iniciar proceso de recobro esta semana.</div>
+          </div>
+          <div class="alert-row warning">
+            <span class="alert-icon">▲</span>
+            <div><span class="alert-strong">Línea de crédito al 68%</span> — Con el pipeline de S4, se alcanzaría el 85%. Evaluar ampliación antes del 30 mayo.</div>
+          </div>
+          <div class="alert-row success">
+            <span class="alert-icon">✓</span>
+            <div><span class="alert-strong">DSO en 27 días</span> — Por debajo del objetivo. Los 5 brokers top pagan puntual.</div>
+          </div>
+        </div>
+
       </div>
-      <div class="chart-card">
-        <div class="chart-title">Flujo Operativo vs Gastos</div>
-        <div class="chart-subtitle">Ingresos de operación vs egresos trimestrales</div>
-        <div class="chart-wrap"><canvas id="barCompareChart" height="220"></canvas></div>
+
+      <!-- ─── FLUJO DE CAJA PANEL ─── -->
+      <div id="panel-flujo" class="tab-panel">
+
+        <div class="section-header">
+          <div class="section-title">Estado de flujo de efectivo</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-title">
+              Flujo operativo
+              <span class="metric-tag">FCO</span>
+            </div>
+            <div class="waterfall">
+              <div class="wf-row">
+                <div class="wf-label">Cobros a brokers / shippers</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:100%"></div></div>
+                <div class="wf-val pos">+$18.7M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Fondeos pagados a camioneros</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:86%"></div></div>
+                <div class="wf-val neg">−$16.1M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Gastos operativos</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:15%"></div></div>
+                <div class="wf-val neg">−$0.5M</div>
+              </div>
+              <div class="wf-row total-row">
+                <div class="wf-label" style="font-weight:600;color:var(--white)">Total operativo</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:11%"></div></div>
+                <div class="wf-val pos" style="font-weight:600;font-size:14px">+$2.1M</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-title">
+              Flujo inversión + financiación
+              <span class="metric-tag">FCI + FCF</span>
+            </div>
+            <div class="waterfall">
+              <div class="wf-row">
+                <div class="wf-label">Software y plataforma</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:20%"></div></div>
+                <div class="wf-val neg">−$200K</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Equipos y oficina</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:20%"></div></div>
+                <div class="wf-val neg">−$200K</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Drawdown línea de crédito</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:100%"></div></div>
+                <div class="wf-val pos">+$1.0M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Amortización deuda</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:50%"></div></div>
+                <div class="wf-val neg">−$500K</div>
+              </div>
+              <div class="wf-row total-row">
+                <div class="wf-label" style="font-weight:600;color:var(--white)">Total neto</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:10%"></div></div>
+                <div class="wf-val pos" style="font-weight:600;font-size:14px">+$100K</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Variación de caja</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="chart-card" style="margin-bottom:32px">
+          <div class="chart-title">Tendencia mensual de caja neta</div>
+          <div class="chart-sub">Últimos 6 meses · Miles USD</div>
+          <div style="position:relative;height:220px;margin-top:16px">
+            <canvas id="trendChart" role="img" aria-label="Tendencia mensual de caja neta"></canvas>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Cómo leer el flujo</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="semaforo-grid">
+          <div class="sem-card">
+            <div class="sem-indicator sem-green-bg">✓</div>
+            <div class="sem-current sc-green">SITUACIÓN ACTUAL</div>
+            <div class="sem-title">Op(+) · Inv(−) · Fin(±)</div>
+            <div class="sem-desc">El negocio genera caja por su propia operación. El crecimiento se financia parcialmente con deuda. Situación sana y sostenible.</div>
+          </div>
+          <div class="sem-card">
+            <div class="sem-indicator sem-amber-bg">▲</div>
+            <div class="sem-current sc-amber">VIGILAR</div>
+            <div class="sem-title">Op(+) · Inv(−) · Fin(++)</div>
+            <div class="sem-desc">Crecimiento acelerado con mucha deuda. Normal en expansión, pero hay que monitorear el ratio deuda/cartera mensualmente.</div>
+          </div>
+          <div class="sem-card">
+            <div class="sem-indicator sem-red-bg">!</div>
+            <div class="sem-title">Op(−) · cualquier caso</div>
+            <div class="sem-desc">La operación quema caja. Señal de alerta crítica: el negocio no se sostiene solo. Requiere acción inmediata.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── EBIT PANEL ─── -->
+      <div id="panel-ebit" class="tab-panel">
+
+        <div class="section-header">
+          <div class="section-title">EBIT — Utilidad operativa</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="kpi-grid" style="margin-bottom:32px">
+          <div class="kpi-card accent">
+            <div class="kpi-label">EBIT del mes</div>
+            <div class="kpi-value green">$1.6M</div>
+            <div class="kpi-delta up">↑ +18% vs abril</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Margen EBIT</div>
+            <div class="kpi-value">8.6%</div>
+            <div class="kpi-delta up">↑ +1.2pp</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Ingresos totales</div>
+            <div class="kpi-value">$18.7M</div>
+            <div class="kpi-delta neutral">Comisiones + descuentos</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Costos operativos</div>
+            <div class="kpi-value red">$16.6M</div>
+            <div class="kpi-delta neutral">Fondeos + gastos</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Intereses (deuda)</div>
+            <div class="kpi-value">$320K</div>
+            <div class="kpi-delta neutral">Excluidos del EBIT</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">EBIT acumulado año</div>
+            <div class="kpi-value green">$7.2M</div>
+            <div class="kpi-delta up">↑ +22% vs 2025</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-title">EBIT mensual 2026</div>
+            <div class="chart-sub">Utilidad operativa en miles USD</div>
+            <div style="position:relative;height:220px;margin-top:16px">
+              <canvas id="ebitChart" role="img" aria-label="EBIT mensual 2026"></canvas>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-title">Cascada de resultados <span class="metric-tag">Mayo</span></div>
+            <div class="waterfall">
+              <div class="wf-row">
+                <div class="wf-label">Ingresos por comisiones</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:100%"></div></div>
+                <div class="wf-val pos">+$18.7M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Costo de fondeo</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:86%"></div></div>
+                <div class="wf-val neg">−$16.1M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">G&A y tecnología</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:15%"></div></div>
+                <div class="wf-val neg">−$0.5M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label">Provisión por mora</div>
+                <div class="wf-bar-wrap"><div class="wf-bar red" style="width:13%"></div></div>
+                <div class="wf-val neg">−$0.5M</div>
+              </div>
+              <div class="wf-row total-row">
+                <div class="wf-label" style="font-weight:600;color:var(--white)">EBIT</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:9%"></div></div>
+                <div class="wf-val pos" style="font-weight:600;font-size:14px">+$1.6M</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label" style="color:var(--white4);font-size:12px">Intereses (−)</div>
+                <div class="wf-bar-wrap"><div class="wf-bar neutral" style="width:8%"></div></div>
+                <div class="wf-val neg" style="color:var(--white4)">−$320K</div>
+              </div>
+              <div class="wf-row">
+                <div class="wf-label" style="color:var(--white4);font-size:12px">Utilidad antes impuestos</div>
+                <div class="wf-bar-wrap"><div class="wf-bar green" style="width:7%"></div></div>
+                <div class="wf-val pos" style="color:var(--white4)">$1.28M</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ─── CARTERA PANEL ─── -->
+      <div id="panel-cartera" class="tab-panel">
+
+        <div class="section-header">
+          <div class="section-title">Cuentas por cobrar activas</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <div class="table-title">Vencimientos próximos 7 días</div>
+            <div class="search-wrap">
+              <span style="color:var(--white4);font-size:12px">⌕</span>
+              <input type="text" id="searchInput" placeholder="Buscar broker..." oninput="filterTable()">
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Broker / Shipper</th>
+                <th>Monto</th>
+                <th>Días pendientes</th>
+                <th>Vencimiento</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr data-search="landstar system">
+                <td style="font-weight:500">Landstar System</td>
+                <td class="td-mono">$412,000</td>
+                <td class="td-mono">24 días</td>
+                <td class="td-mono">28 may</td>
+                <td><span class="status-badge status-ok"><span class="status-dot"></span>Al día</span></td>
+              </tr>
+              <tr data-search="echo global logistics">
+                <td style="font-weight:500">Echo Global Logistics</td>
+                <td class="td-mono">$287,500</td>
+                <td class="td-mono">29 días</td>
+                <td class="td-mono">29 may</td>
+                <td><span class="status-badge status-warn"><span class="status-dot"></span>Pendiente</span></td>
+              </tr>
+              <tr data-search="xpo logistics">
+                <td style="font-weight:500">XPO Logistics</td>
+                <td class="td-mono">$198,000</td>
+                <td class="td-mono">27 días</td>
+                <td class="td-mono">30 may</td>
+                <td><span class="status-badge status-ok"><span class="status-dot"></span>Al día</span></td>
+              </tr>
+              <tr data-search="tql total quality logistics">
+                <td style="font-weight:500">TQL (Total Quality Logistics)</td>
+                <td class="td-mono">$175,000</td>
+                <td class="td-mono">47 días</td>
+                <td class="td-mono">31 may</td>
+                <td><span class="status-badge status-bad"><span class="status-dot"></span>En mora</span></td>
+              </tr>
+              <tr data-search="coyote logistics">
+                <td style="font-weight:500">Coyote Logistics</td>
+                <td class="td-mono">$143,000</td>
+                <td class="td-mono">28 días</td>
+                <td class="td-mono">2 jun</td>
+                <td><span class="status-badge status-warn"><span class="status-dot"></span>Pendiente</span></td>
+              </tr>
+              <tr data-search="ch robinson">
+                <td style="font-weight:500">C.H. Robinson</td>
+                <td class="td-mono">$98,000</td>
+                <td class="td-mono">25 días</td>
+                <td class="td-mono">3 jun</td>
+                <td><span class="status-badge status-ok"><span class="status-dot"></span>Al día</span></td>
+              </tr>
+              <tr data-search="uber freight">
+                <td style="font-weight:500">Uber Freight</td>
+                <td class="td-mono">$76,500</td>
+                <td class="td-mono">51 días</td>
+                <td class="td-mono">4 jun</td>
+                <td><span class="status-badge status-bad"><span class="status-dot"></span>En mora</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Antigüedad de cartera</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Distribución por días de mora</div>
+          <div class="chart-sub">% del total de cartera vigente · $18.7M</div>
+          <div style="position:relative;height:180px;margin-top:16px">
+            <canvas id="ageChart" role="img" aria-label="Antigüedad de cartera por días de mora"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ALERTAS PANEL ─── -->
+      <div id="panel-alertas" class="tab-panel">
+
+        <div class="section-header">
+          <div class="section-title">Alertas y seguimiento</div>
+          <div class="section-line"></div>
+        </div>
+
+        <div class="alerts-grid">
+          <div class="alert-row danger">
+            <span class="alert-icon">●</span>
+            <div>
+              <div class="alert-strong" style="margin-bottom:4px">Mora crítica — 3 brokers +45 días</div>
+              <div>TQL ($175K), Uber Freight ($76.5K) y un tercero ($428.5K) acumulan $680K vencidos. Acción requerida: llamada de cobranza + carta formal esta semana.</div>
+            </div>
+          </div>
+          <div class="alert-row warning">
+            <span class="alert-icon">▲</span>
+            <div>
+              <div class="alert-strong" style="margin-bottom:4px">Línea de crédito al 68% — riesgo de techo</div>
+              <div>Con el pipeline proyectado para la semana 4, la utilización escalaría al 85% ($21.2M de $25M). Se recomienda solicitar ampliación o diferir fondeos no urgentes.</div>
+            </div>
+          </div>
+          <div class="alert-row success">
+            <span class="alert-icon">✓</span>
+            <div>
+              <div class="alert-strong" style="margin-bottom:4px">DSO en 27 días — bajo el objetivo</div>
+              <div>Los 5 brokers top (Landstar, XPO, C.H. Robinson, J.B. Hunt, Transplace) mantienen pagos puntuales. Representan el 64% de la cartera.</div>
+            </div>
+          </div>
+          <div class="alert-row warning">
+            <span class="alert-icon">▲</span>
+            <div>
+              <div class="alert-strong" style="margin-bottom:4px">Provisión por mora insuficiente</div>
+              <div>La provisión actual cubre el 38% de la cartera vencida. Con la tendencia actual se recomienda aumentarla a $500K adicionales antes del cierre de mayo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+
+    <div class="footer">
+      <div>FlowDesk · Factoring Dashboard v1.0 · Mayo 2026</div>
+      <div class="footer-right">
+        <span>Datos actualizados: 27 may 2026, 14:32</span>
+        <span style="color:var(--red)">● LIVE</span>
       </div>
     </div>
 
-    <!-- DETAILED TABLE -->
-    <div class="table-card">
-      <div class="chart-title" style="margin-bottom:4px;">Estado de Flujo de Efectivo — Detalle</div>
-      <div class="chart-subtitle">Cifras en USD miles (K)</div>
-      <table id="cfTable">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th>Categoría</th>
-            <th style="text-align:right">Oct 2026</th>
-            <th style="text-align:right">Nov 2026</th>
-            <th style="text-align:right">Dic 2026</th>
-            <th style="text-align:right">Total Q4</th>
-          </tr>
-        </thead>
-        <tbody id="cfTableBody"></tbody>
-      </table>
-    </div>
-
-  </div><!-- /main-content -->
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-brand">
-      <div class="footer-dot"></div>
-      <span>Cash Flow Dashboard — Análisis Financiero 2026</span>
-    </div>
-    <span>Propuesta linea gráfica para Dashboard | v1.0</span>
-    <span id="footer-ts"></span>
-  </footer>
-
+  </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- IMPORT MODAL -->
-<div class="modal-overlay" id="importModal">
-  <div class="modal">
-    <div class="modal-title">Importar Datos</div>
-    <div class="modal-sub">Carga tu archivo CSV o Excel con el estado de flujo de efectivo</div>
-    <div class="format-note">
-      <strong>Formato requerido de columnas:</strong>
-      Concepto | Categoría | Oct | Nov | Dic | Total<br/>
-      Las categorías válidas son: <em>Operativo, Inversión, Financiamiento</em>
+<!-- MODAL -->
+<div class="modal-overlay" id="alertModal" onclick="closeModal('alertModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title">Alertas activas</div>
+    <div class="modal-sub">3 ALERTAS · MAYO 2026</div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="padding:10px 14px;border-left:2px solid var(--red);background:var(--black3);border-radius:0 4px 4px 0;font-size:12px">
+          <strong style="color:var(--white)">Mora crítica</strong><br>
+          <span style="color:var(--white3)">TQL + Uber Freight + 1 broker → $680K vencidos +45 días</span>
+        </div>
+        <div style="padding:10px 14px;border-left:2px solid var(--amber);background:var(--black3);border-radius:0 4px 4px 0;font-size:12px">
+          <strong style="color:var(--white)">Línea al 68%</strong><br>
+          <span style="color:var(--white3)">Proyección S4: 85%. Evaluar ampliación urgente.</span>
+        </div>
+        <div style="padding:10px 14px;border-left:2px solid var(--amber);background:var(--black3);border-radius:0 4px 4px 0;font-size:12px">
+          <strong style="color:var(--white)">Provisión insuficiente</strong><br>
+          <span style="color:var(--white3)">Cubre solo el 38% de la cartera vencida.</span>
+        </div>
+      </div>
     </div>
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <div class="drop-icon">📂</div>
-      <p>Arrastra tu archivo aquí o haz clic para seleccionar<br/><strong style="color:#fff">.CSV · .XLSX · .XLS</strong></p>
-    </div>
-    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])"/>
-    <div class="upload-status" id="uploadStatus">✓ Archivo cargado correctamente</div>
-    <div class="modal-actions">
-      <button class="btn-close" onclick="closeModal()">Cancelar</button>
-    </div>
+    <button class="modal-close" onclick="closeModal('alertModal')">Cerrar</button>
   </div>
 </div>
 
 <script>
-/* ─────────────────────────────────────────────────────
-   DATA — Fictitious trucking/factoring company
-───────────────────────────────────────────────────── */
-const PERIODS = {
-  Q4: {
-    label: 'Oct — Dic 2026',
-    months: ['Oct 2026','Nov 2026','Dic 2026'],
-    kpi: { op: 2184, inv: -680, fin: -257, net: 1247, balance: 3891, change: '+18.4%' },
-    monthly: {
-      operating:   [682, 734, 768],
-      investing:   [-180, -240, -260],
-      financing:   [-95, -80, -82],
-    },
-    trend12: {
-      labels: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
-      operating:  [510,490,560,620,580,640,700,720,695,682,734,768],
-      investing:  [-120,-100,-140,-160,-180,-200,-210,-190,-220,-180,-240,-260],
-      financing:  [-80,-70,-90,-85,-95,-100,-88,-92,-95,-95,-80,-82],
-    }
-  },
-  Q3: {
-    label: 'Jul — Sep 2026',
-    months: ['Jul 2026','Ago 2026','Sep 2026'],
-    kpi: { op: 2115, inv: -620, fin: -283, net: 1212, balance: 2644, change: '+14.1%' },
-    monthly: { operating:[700,720,695], investing:[-210,-190,-220], financing:[-88,-92,-103] },
-    trend12: null,
-  },
-  Q2: {
-    label: 'Abr — Jun 2026',
-    months: ['Abr 2026','May 2026','Jun 2026'],
-    kpi: { op: 1840, inv: -540, fin: -240, net: 1060, balance: 1432, change: '+9.8%' },
-    monthly: { operating:[620,580,640], investing:[-160,-180,-200], financing:[-85,-95,-100] },
-    trend12: null,
-  },
-  YTD: {
-    label: 'Ene — Dic 2026',
-    months: ['Q1 2026','Q2 2026','Q3 2026','Q4 2026'],
-    kpi: { op: 7880, inv: -2350, fin: -940, net: 4590, balance: 3891, change: '+27.3%' },
-    monthly: { operating:[1550,1840,2115,2184], investing:[-540,-540,-620,-680], financing:[-220,-240,-283,-257] },
-    trend12: null,
-  }
+// ─── NAVIGATION ───
+const panels = ['overview','flujo','ebit','cartera','alertas'];
+const titles = {
+  overview: 'Visión general',
+  flujo: 'Flujo de caja',
+  ebit: 'EBIT — Utilidad operativa',
+  cartera: 'Cartera activa',
+  alertas: 'Alertas y seguimiento'
 };
 
-const TABLE_ROWS = [
-  // OPERATING
-  {section:'ACTIVIDADES OPERATIVAS'},
-  {concept:'Utilidad Neta del Período', cat:'Operativo', vals:[420,465,490]},
-  {concept:'Depreciación y Amortización', cat:'Operativo', vals:[95,98,102]},
-  {concept:'Facturas cedidas (Factoring)', cat:'Operativo', vals:[310,340,380]},
-  {concept:'Cuentas por cobrar', cat:'Operativo', vals:[-88,-92,-110]},
-  {concept:'Cuentas por pagar', cat:'Operativo', vals:[32,28,35]},
-  {concept:'Gastos anticipados y otros', cat:'Operativo', vals:[-87,-105,-129]},
-  {subtotal: 'Flujo Neto Operativo', vals:[682,734,768]},
-  // INVESTING
-  {section:'ACTIVIDADES DE INVERSIÓN'},
-  {concept:'Compra de tractocamiones', cat:'Inversión', vals:[-120,-160,-180]},
-  {concept:'Compra de remolques', cat:'Inversión', vals:[-40,-55,-60]},
-  {concept:'Equipos y tecnología', cat:'Inversión', vals:[-20,-25,-20]},
-  {subtotal: 'Flujo Neto de Inversión', vals:[-180,-240,-260]},
-  // FINANCING
-  {section:'ACTIVIDADES DE FINANCIAMIENTO'},
-  {concept:'Préstamo bancario recibido', cat:'Financiamiento', vals:[50,0,0]},
-  {concept:'Pago de capital de deuda', cat:'Financiamiento', vals:[-112,-50,-50]},
-  {concept:'Pago de intereses', cat:'Financiamiento', vals:[-33,-30,-32]},
-  {subtotal: 'Flujo Neto de Financiamiento', vals:[-95,-80,-82]},
-  // NET
-  {total: 'VARIACIÓN NETA DE EFECTIVO', vals:[407,414,426]},
-];
-
-let currentPeriod = 'Q4';
-let charts = {};
-
-/* ─────────────────────────────────────────────────────
-   CHART.JS DEFAULTS
-───────────────────────────────────────────────────── */
-Chart.defaults.color = 'rgba(255,255,255,0.55)';
-Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-Chart.defaults.font.family = 'Montserrat';
-Chart.defaults.font.size = 11;
-
-const RED = '#D10000', GREEN = '#00E5A0', WHITE = 'rgba(255,255,255,0.85)', MUTED = 'rgba(255,255,255,0.25)';
-
-/* ─────────────────────────────────────────────────────
-   RENDER
-───────────────────────────────────────────────────── */
-function setPeriod(p, btn) {
-  currentPeriod = p;
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderAll();
+function navigate(el, panel) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  panels.forEach(p => {
+    const el2 = document.getElementById('panel-' + p);
+    if (el2) el2.classList.toggle('active', p === panel);
+  });
+  document.getElementById('pageTitle').textContent = titles[panel] || panel;
+  if (panel === 'cartera' && !window.ageChartDrawn) drawAgeChart();
+  if (panel === 'ebit' && !window.ebitChartDrawn) drawEbitChart();
+  if (panel === 'flujo' && !window.trendChartDrawn) drawTrendChart();
 }
 
-function renderAll() {
-  const d = PERIODS[currentPeriod];
-  // Hero
-  document.getElementById('hero-period').textContent = `Período: ${d.label} · Datos Ilustrativos`;
-  document.getElementById('hero-net').textContent = `$${d.kpi.net.toLocaleString()}K`;
-  document.getElementById('hero-change').textContent = `▲ ${d.kpi.change} vs período anterior`;
-  // KPIs
-  document.getElementById('kpi-op').textContent   = `$${d.kpi.op.toLocaleString()}K`;
-  document.getElementById('kpi-inv').textContent  = `-$${Math.abs(d.kpi.inv).toLocaleString()}K`;
-  document.getElementById('kpi-fin').textContent  = `-$${Math.abs(d.kpi.fin).toLocaleString()}K`;
-  document.getElementById('kpi-net').textContent  = `+$${d.kpi.net.toLocaleString()}K`;
-  document.getElementById('kpi-balance').textContent = `$${d.kpi.balance.toLocaleString()}K`;
-  // Charts
-  buildTrendChart(d);
-  buildDonutChart(d);
-  buildWaterfallChart(d);
-  buildBarCompareChart(d);
-  buildTable(d);
+// ─── MODAL ───
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─── SEARCH TABLE ───
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#tableBody tr').forEach(tr => {
+    tr.style.display = tr.dataset.search.includes(q) ? '' : 'none';
+  });
 }
 
-/* TREND */
-function buildTrendChart(d) {
-  const src = d.trend12 || {
-    labels: d.months,
-    operating: d.monthly.operating,
-    investing: d.monthly.investing,
-    financing: d.monthly.financing,
-  };
-  if (charts.trend) charts.trend.destroy();
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  const gradOp = ctx.createLinearGradient(0,0,0,320);
-  gradOp.addColorStop(0,'rgba(0,229,160,0.28)'); gradOp.addColorStop(1,'rgba(0,229,160,0.00)');
-  charts.trend = new Chart(ctx, {
-    type:'line',
-    data:{
-      labels: src.labels,
-      datasets:[
-        {label:'Operativo', data: src.operating, borderColor: GREEN, backgroundColor: gradOp, borderWidth:2, pointRadius:4, pointBackgroundColor:GREEN, tension:0.4, fill:true},
-        {label:'Inversión', data: src.investing, borderColor: RED, backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:RED, tension:0.4, borderDash:[5,3]},
-        {label:'Financiamiento', data: src.financing, borderColor:'rgba(255,255,255,0.50)', backgroundColor:'transparent', borderWidth:1.5, pointRadius:3, tension:0.4, borderDash:[2,4]},
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:true,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{labels:{usePointStyle:true, pointStyleWidth:8, boxHeight:5, padding:18, font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
-        tooltip:{
-          backgroundColor:'rgba(0,0,0,0.88)',
-          borderColor:'rgba(209,0,0,0.40)',
-          borderWidth:1,
-          titleFont:{weight:'700',size:11},
-          callbacks:{label:ctx=>`  ${ctx.dataset.label}: $${ctx.raw?.toLocaleString()}K`}
-        }
+// ─── EXPORT ───
+function exportReport() {
+  const btn = document.querySelector('.export-btn');
+  btn.textContent = '↓ Generando...';
+  setTimeout(() => {
+    btn.textContent = '✓ Listo';
+    setTimeout(() => { btn.textContent = '↓ Exportar PDF'; }, 1800);
+  }, 1200);
+  window.print();
+}
+
+// ─── CHARTS ───
+Chart.defaults.color = '#666666';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const gridColor = 'rgba(255,255,255,0.05)';
+const tickColor = '#555';
+
+// Flow chart
+new Chart(document.getElementById('flowChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+    datasets: [
+      {
+        label: 'Fondeos salientes',
+        data: [-3.8, -5.1, -4.9, -4.9],
+        backgroundColor: 'rgba(200,16,46,0.7)',
+        borderRadius: 3,
+        stack: 'a'
       },
-      scales:{
-        x:{grid:{color:'rgba(255,255,255,0.04)',drawBorder:false}, ticks:{font:{size:10}}},
-        y:{grid:{color:'rgba(255,255,255,0.06)'}, ticks:{font:{size:10}, callback:v=>`$${v}K`}}
-      }
-    }
-  });
-}
-
-/* DONUT */
-function buildDonutChart(d) {
-  const opSum  = d.monthly.operating.reduce((a,b)=>a+b,0);
-  const invSum = Math.abs(d.monthly.investing.reduce((a,b)=>a+b,0));
-  const finSum = Math.abs(d.monthly.financing.reduce((a,b)=>a+b,0));
-  if (charts.donut) charts.donut.destroy();
-  const ctx = document.getElementById('donutChart').getContext('2d');
-  charts.donut = new Chart(ctx,{
-    type:'doughnut',
-    data:{
-      labels:['Operativo','Inversión','Financiamiento'],
-      datasets:[{data:[opSum,invSum,finSum],backgroundColor:['rgba(0,229,160,0.80)','rgba(209,0,0,0.80)','rgba(255,255,255,0.40)'],borderColor:['rgba(0,229,160,1)','rgba(209,0,0,1)','rgba(255,255,255,0.60)'],borderWidth:1.5,hoverOffset:8}]
-    },
-    options:{
-      responsive:true, cutout:'68%',
-      plugins:{
-        legend:{position:'bottom',labels:{usePointStyle:true,padding:16,font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
-        tooltip:{backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,callbacks:{label:ctx=>`${ctx.label}: $${ctx.raw.toLocaleString()}K`}}
-      }
-    }
-  });
-}
-
-/* WATERFALL */
-function buildWaterfallChart(d) {
-  const {op,inv,fin,net,balance} = d.kpi;
-  const prev = balance - net;
-  const labels  = ['Saldo Inicial','Flujo Operativo','Flujo Inversión','Flujo Financiamiento','Saldo Final'];
-  const floats  = [0, prev, prev+op, prev+op+inv, 0];
-  const bars    = [prev, op, inv, fin, balance];
-  const colors  = [
-    'rgba(255,255,255,0.30)',
-    op>=0  ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
-    inv>=0 ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
-    fin>=0 ? 'rgba(0,229,160,0.80)'  : 'rgba(209,0,0,0.80)',
-    'rgba(255,80,80,0.85)',
-  ];
-  if (charts.waterfall) charts.waterfall.destroy();
-  const ctx = document.getElementById('waterfallChart').getContext('2d');
-  charts.waterfall = new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels,
-      datasets:[
-        {label:'Base', data:floats, backgroundColor:'transparent', borderWidth:0, stack:'w'},
-        {label:'Flujo', data:bars.map(v=>Math.abs(v)), backgroundColor:colors, borderRadius:2, borderWidth:0, stack:'w'}
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,
-          filter: item => item.datasetIndex === 1,
-          callbacks:{label:ctx=>`$${bars[ctx.dataIndex].toLocaleString()}K`}
-        }
+      {
+        label: 'Cobros recibidos',
+        data: [3.2, 4.8, 5.3, 2.8],
+        backgroundColor: 'rgba(29,158,117,0.7)',
+        borderRadius: 3,
+        stack: 'a'
       },
-      scales:{
-        x:{grid:{display:false}, ticks:{font:{size:9.5}}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'}, stacked:true, ticks:{callback:v=>`$${v}K`,font:{size:10}}}
+      {
+        label: 'Caja neta',
+        type: 'line',
+        data: [-0.6, -0.3, 0.4, -2.1],
+        borderColor: '#d4a017',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: '#d4a017',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.4,
+        yAxisID: 'y2',
+        borderWidth: 1.5
       }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', borderColor: '#303030', borderWidth: 1, titleColor: '#f5f5f0', bodyColor: '#aaa' } },
+    scales: {
+      x: { stacked: true, ticks: { color: tickColor }, grid: { color: gridColor } },
+      y: { stacked: true, ticks: { color: tickColor, callback: v => (v<0?'-':'')+'$'+Math.abs(v)+'M' }, grid: { color: gridColor } },
+      y2: { position: 'right', ticks: { color: '#d4a017', callback: v => (v<0?'-':'')+'$'+Math.abs(v)+'M' }, grid: { display: false } }
     }
-  });
-}
-
-/* BAR COMPARE */
-function buildBarCompareChart(d) {
-  const m = d.months.length > 4 ? ['Q1','Q2','Q3','Q4'] : d.months.map(m=>m.split(' ')[0]);
-  const inflows  = d.monthly.operating;
-  const outflows = d.monthly.investing.map((v,i) => Math.abs(v) + Math.abs(d.monthly.financing[i]));
-  if (charts.bar) charts.bar.destroy();
-  const ctx = document.getElementById('barCompareChart').getContext('2d');
-  charts.bar = new Chart(ctx,{
-    type:'bar',
-    data:{
-      labels: m,
-      datasets:[
-        {label:'Ingresos Operativos', data: inflows, backgroundColor:'rgba(0,229,160,0.70)', borderRadius:3, borderWidth:0},
-        {label:'Egresos (Inv+Fin)',   data: outflows, backgroundColor:'rgba(209,0,0,0.70)', borderRadius:3, borderWidth:0}
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{labels:{usePointStyle:true,padding:16,font:{size:10.5,weight:'600'},color:'rgba(255,255,255,0.65)'}},
-        tooltip:{backgroundColor:'rgba(0,0,0,0.88)',borderColor:'rgba(209,0,0,0.40)',borderWidth:1,callbacks:{label:ctx=>`${ctx.dataset.label}: $${ctx.raw.toLocaleString()}K`}}
-      },
-      scales:{
-        x:{grid:{display:false}, ticks:{font:{size:10}}},
-        y:{grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:v=>`$${v}K`,font:{size:10}}}
-      }
-    }
-  });
-}
-
-/* TABLE */
-function buildTable(d) {
-  const months = d.months.length > 4
-    ? ['Q1 2026','Q2 2026','Q3 2026','Q4 2026']
-    : d.months;
-  const body = document.getElementById('cfTableBody');
-  body.innerHTML = '';
-  TABLE_ROWS.forEach(row => {
-    const tr = document.createElement('tr');
-    if (row.section) {
-      tr.className = 'section-header';
-      tr.innerHTML = `<td colspan="6">${row.section}</td>`;
-    } else if (row.subtotal) {
-      tr.className = 'tr-subtotal';
-      const total = row.vals.reduce((a,b)=>a+b,0);
-      const isNeg = total < 0;
-      tr.innerHTML = `
-        <td colspan="2">${row.subtotal}</td>
-        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
-        <td class="${isNeg?'td-negative':'td-positive'}">${isNeg?'':'+'}${total.toLocaleString()}</td>
-      `;
-    } else if (row.total) {
-      tr.className = 'tr-total';
-      const total = row.vals.reduce((a,b)=>a+b,0);
-      tr.innerHTML = `
-        <td colspan="2">${row.total}</td>
-        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
-        <td class="${total>=0?'td-positive':'td-negative'}">${total>=0?'+':''}${total.toLocaleString()}</td>
-      `;
-    } else {
-      const total = row.vals.reduce((a,b)=>a+b,0);
-      tr.innerHTML = `
-        <td>${row.concept}</td>
-        <td class="td-category">${row.cat}</td>
-        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
-        <td class="${total>=0?'td-positive':'td-negative'} td-neutral">${total>=0?'+':''}${total.toLocaleString()}</td>
-      `;
-    }
-    body.appendChild(tr);
-  });
-}
-
-/* ─────────────────────────────────────────────────────
-   IMPORT MODAL
-───────────────────────────────────────────────────── */
-function openModal()  { document.getElementById('importModal').classList.add('open'); }
-function closeModal() { document.getElementById('importModal').classList.remove('open'); }
-
-const dropZone = document.getElementById('dropZone');
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('dragover');
-  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  }
 });
 
-function handleFile(file) {
-  if (!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      let rows = [];
-      if (ext === 'csv') {
-        const text = e.target.result;
-        rows = text.trim().split('\n').slice(1).map(r => r.split(',').map(c=>c.trim().replace(/"/g,'')));
-      } else {
-        const wb = XLSX.read(e.target.result, {type:'binary'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, {header:1}).slice(1);
-      }
-      parseImportedRows(rows);
-      document.getElementById('uploadStatus').style.display = 'block';
-      setTimeout(closeModal, 1400);
-    } catch(err) { alert('Error al procesar el archivo. Verifica el formato.'); }
-  };
-  if (ext === 'csv') reader.readAsText(file);
-  else reader.readAsBinaryString(file);
-}
-
-function parseImportedRows(rows) {
-  // Rebuild TABLE_ROWS from imported data and re-render table
-  // Expected: [Concept, Category, v1, v2, v3, total]
-  const newRows = [];
-  let lastCat = null;
-  rows.forEach(r => {
-    if (!r[0]) return;
-    const cat = (r[1] || '').toString().trim();
-    if (cat && cat !== lastCat) {
-      newRows.push({ section: cat.toUpperCase() + ' (Importado)' });
-      lastCat = cat;
+// Pie chart
+new Chart(document.getElementById('pieChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Al día', '15–30 días', '+30 días'],
+    datasets: [{
+      data: [72, 18, 10],
+      backgroundColor: ['rgba(29,158,117,0.8)', 'rgba(212,160,23,0.8)', 'rgba(200,16,46,0.8)'],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: { color: '#666', font: { size: 10 }, boxWidth: 8, padding: 12, usePointStyle: true }
+      },
+      tooltip: { backgroundColor: '#1a1a1a', borderColor: '#303030', borderWidth: 1, titleColor: '#f5f5f0', bodyColor: '#aaa' }
     }
-    const vals = [parseFloat(r[2])||0, parseFloat(r[3])||0, parseFloat(r[4])||0];
-    newRows.push({ concept: r[0].toString(), cat, vals });
-  });
-  // Rebuild the table with new rows
-  const body = document.getElementById('cfTableBody');
-  body.innerHTML = '';
-  newRows.forEach(row => {
-    const tr = document.createElement('tr');
-    if (row.section) {
-      tr.className = 'section-header';
-      tr.innerHTML = `<td colspan="6">${row.section}</td>`;
-    } else {
-      const total = row.vals.reduce((a,b)=>a+b,0);
-      tr.innerHTML = `
-        <td>${row.concept}</td>
-        <td class="td-category">${row.cat}</td>
-        ${row.vals.map(v=>`<td class="${v>=0?'td-positive':'td-negative'}">${v>=0?'+':''}${v.toLocaleString()}</td>`).join('')}
-        <td class="${total>=0?'td-positive':'td-negative'} td-neutral">${total>=0?'+':''}${total.toLocaleString()}</td>
-      `;
-    }
-    body.appendChild(tr);
-  });
-}
-
-/* ─────────────────────────────────────────────────────
-   INIT
-───────────────────────────────────────────────────── */
-document.getElementById('footer-ts').textContent =
-  new Date().toLocaleDateString('es-CO', {year:'numeric',month:'long',day:'numeric'});
-
-document.getElementById('importModal').addEventListener('click', function(e){
-  if(e.target === this) closeModal();
+  }
 });
 
-renderAll();
+// Trend chart (lazy)
+function drawTrendChart() {
+  window.trendChartDrawn = true;
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: ['Dic','Ene','Feb','Mar','Abr','May'],
+      datasets: [
+        {
+          label: 'Caja neta',
+          data: [1.4, 1.8, 1.2, 2.0, 1.9, 2.2],
+          borderColor: '#1d9e75',
+          backgroundColor: 'rgba(29,158,117,0.08)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#1d9e75',
+          pointRadius: 4,
+          borderWidth: 2
+        },
+        {
+          label: 'Cartera vencida',
+          data: [0.6, 0.7, 0.9, 1.0, 1.1, 1.3],
+          borderColor: '#c8102e',
+          backgroundColor: 'rgba(200,16,46,0.05)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#c8102e',
+          pointRadius: 4,
+          borderWidth: 1.5,
+          borderDash: [4,3]
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { color: '#666', font: { size: 10 }, boxWidth: 8, usePointStyle: true } },
+        tooltip: { backgroundColor: '#1a1a1a', borderColor: '#303030', borderWidth: 1, titleColor: '#f5f5f0', bodyColor: '#aaa' }
+      },
+      scales: {
+        x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, callback: v => '$'+v+'M' }, grid: { color: gridColor } }
+      }
+    }
+  });
+}
+
+// EBIT chart (lazy)
+function drawEbitChart() {
+  window.ebitChartDrawn = true;
+  new Chart(document.getElementById('ebitChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Ene','Feb','Mar','Abr','May'],
+      datasets: [{
+        label: 'EBIT',
+        data: [1100, 980, 1350, 1380, 1600],
+        backgroundColor: (ctx) => ctx.raw >= 0 ? 'rgba(29,158,117,0.7)' : 'rgba(200,16,46,0.7)',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#1a1a1a', borderColor: '#303030', borderWidth: 1, titleColor: '#f5f5f0', bodyColor: '#aaa', callbacks: { label: ctx => ' $' + ctx.raw.toLocaleString() + 'K' } }
+      },
+      scales: {
+        x: { ticks: { color: tickColor }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, callback: v => '$'+v+'K' }, grid: { color: gridColor } }
+      }
+    }
+  });
+}
+
+// Age chart (lazy)
+function drawAgeChart() {
+  window.ageChartDrawn = true;
+  new Chart(document.getElementById('ageChart'), {
+    type: 'bar',
+    data: {
+      labels: ['0–15 días', '15–30 días', '30–45 días', '+45 días'],
+      datasets: [{
+        label: '% de cartera',
+        data: [62, 18, 13, 7],
+        backgroundColor: ['rgba(29,158,117,0.7)','rgba(212,160,23,0.7)','rgba(200,16,46,0.5)','rgba(200,16,46,0.85)'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#1a1a1a', borderColor: '#303030', borderWidth: 1, titleColor: '#f5f5f0', bodyColor: '#aaa', callbacks: { label: ctx => ' ' + ctx.raw + '% del total' } }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, callback: v => v+'%' }, grid: { color: gridColor }, max: 100 },
+        y: { ticks: { color: tickColor }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// Health fill animation on load
+setTimeout(() => {
+  document.getElementById('healthFill').style.width = '72%';
+}, 300);
 </script>
 </body>
 </html>
-
